@@ -1,0 +1,15 @@
+#user-found-form .form-type-textfield{
+	float: left;
+	margin: 0px;
+	padding-top: 4px;
+}
+
+#user-found-form #edit-submit-view, #user-found-form #edit-submit-edit{
+	float: left;
+	margin-left: 1em;
+	margin-right: 0px;
+}
+
+#user-found-form .form-type-textfield label{
+	display:none;
+}

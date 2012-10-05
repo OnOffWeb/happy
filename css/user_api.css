@@ -1,0 +1,15 @@
+#user-happy-form .form-type-textfield{
+	float: left;
+	margin: 0px;
+	padding-top: 4px;
+}
+
+#user-happy-form #edit-submit-view, #user-happy-form #edit-submit-edit{
+	float: left;
+	margin-left: 1em;
+	margin-right: 0px;
+}
+
+#user-happy-form .form-type-textfield label{
+	display:none;
+}
