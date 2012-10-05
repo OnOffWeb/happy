@@ -5,7 +5,7 @@
  */
 function user_happy_block_info(){
 
-	return array('user_happy' => 
+	return array('user_happy' =>
 		array(
 			'info' => t('Search user'),
 			'region' => 'content',
@@ -54,7 +54,7 @@ function user_happy_permission() {
 
   return array(
     'user happy block' => array(
-      'title' => t('Use block user search'), 
+      'title' => t('Use block user search'),
       'description' => t('Display search block in \'admin/people\' page.'),
     ),
   );
@@ -75,12 +75,12 @@ function user_happy_form(){
 
 		$form['search'] = array(
 			'#type' => 'fieldset',
-			'#title' => t('Search user'), 
+			'#title' => t('Search user'),
 		);
 		$form['search']['name'] = array(
-		  '#type' => 'textfield', 
-		  '#title' => t('Search user'), 
-		  '#maxlength' => 60, 
+		  '#type' => 'textfield',
+		  '#title' => t('Search user'),
+		  '#maxlength' => 60,
 		  '#size' => 30,
 		  '#autocomplete_path' => 'user/autocomplete',
 		  '#weight' => -1,
@@ -131,6 +131,8 @@ function user_happy_form_submit($form, &$form_state){
 
 /**
  * Find user's uid with his name
+ * @param  String 	$name
+ * @param  boolean 	$object_return Set if user Object must be returned
  */
 function user_happy_get_by_name($name, $object_return = FALSE){
 	if($name){
