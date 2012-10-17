@@ -23,25 +23,54 @@ function user_happy_get_by_name($name, $object_return = FALSE){
 
 
 /**
- * Find users by role
- * $role : String of role name or Int of role id
+ * [user_happy_get_by_role description]
+ * @param  [type]  $role          [description]
+ * @param  boolean $object_return [description]
+ * @param  boolean $intersect     [description]
+ * @return [type]                 [description]
  */
-function user_happy_get_by_role($role, $object_return = FALSE){
-	$return = NULL;
-/* in progress
-	$rid = (is_int($role)) ? $role : user_role_load_by_name($role)->rid;
+function user_happy_get_by_role($role, $object_return = FALSE, $intersect = TRUE){
+  $return = NULL;
+  $condition = array();
+  $state = array();
+  $user_list = array();
 
-	if($name){
-		$user_list = db_select('users_roles', 'UR')
-            ->fields('UR', array('uid'))
-            ->condition('rid', $rid, '=')
-            ->execute()
-            ->fetchObject();
+  if($role){
 
-        //$return = ($user_list) ? ($object_return) ? user_load($user_list->uid) : $user_list->uid : FALSE;
-	}
-	else
-		$return = FALSE;
-*/
-	return $return;
-}
+    if(is_array($role)){
+      foreach($role as $r)
+        $condition[] = (is_int($r)) ? $r : user_role_load_by_name($r)->rid;
+     }// if()
+    else
+        $condition[] = (is_int($role)) ? $role : user_role_load_by_name($role)->rid;
+
+      foreach ($condition as $c) {
+         // Create SelectQuery object
+        $request = db_select('users_roles', 'UR')
+        ->fields('UR', array('uid'))
+        ->condition('rid', $c, '=');
+
+        $result = $request->execute();
+
+        while($unit = $result->fetchObject())
+          $state[$c][$unit->uid] = $unit->uid;
+
+        if(empty($user_list))
+          $user_list = $state[$c];
+        else
+          ($intersect) ? $user_list = array_intersect($user_list, $state[$c]) : array_merge($user_list, $state[$c]);
+      }// foreach()
+
+    if($object_return){
+      foreach ($user_list as $uid => $account)
+        $user_list[$uid] = user_load($uid);
+    }// if()
+
+    $return = $user_list;
+  }// if()
+  else
+    $return = FALSE;
+
+  // Output
+  return $return;
+}// user_happy_get_by_role()
