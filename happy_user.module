@@ -1,0 +1,129 @@
+<?php
+
+/**
+ * Implement hook_block_info().
+ */
+function user_happy_block_info(){
+
+	return array('user_happy' =>
+		array(
+			'info' => t('Search user'),
+			'region' => 'content',
+			'weight' => -15,
+			'status' => 1,
+			'properties' => array('administrative' => TRUE),
+			'cache' => DRUPAL_CACHE_GLOBAL,
+			'visibility' => BLOCK_VISIBILITY_LISTED,
+			'pages' => implode('\n', array(
+				"admin/people")
+			),
+		),
+	);
+
+}// user_happy_block_info()
+
+
+/**
+ * Implement hook_block_view().
+ */
+function user_happy_block_view($delta){
+	$block = array();
+
+	switch ($delta) {
+
+		case 'user_happy':
+			// if current user have right to use this block
+			if(user_access('user happy block')){
+				//$block['subject'] = t('Search user');
+				$block['content'] = drupal_get_form('user_happy_form');
+				drupal_add_css(drupal_get_path('module', 'user_happy') . '/css/user_happy.css');
+			}// if()
+			break;
+
+	}//switch()
+
+	return $block;
+
+}// user_happy_block_view()
+
+
+/**
+ * Implement hook_permission().
+ */
+function user_happy_permission() {
+
+  return array(
+    'user happy block' => array(
+      'title' => t('Use block user search'),
+      'description' => t('Display search block in \'admin/people\' page.'),
+    ),
+  );
+
+}// user_happy_permission()
+
+
+/**
+ * Generate form to find user.
+ */
+function user_happy_form(){
+	$access = user_access('access user profiles');
+	$administer = user_access('administer users');
+
+	// if current user have right to view or edit profiles
+	if($access || $administer){
+		$form = array();
+
+		$form['search'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Search user'),
+		);
+		$form['search']['name'] = array(
+		  '#type' => 'textfield',
+		  '#title' => t('Search user'),
+		  '#maxlength' => 60,
+		  '#size' => 30,
+		  '#autocomplete_path' => 'user/autocomplete',
+		  '#weight' => -1,
+		  '#description' => t('Search user by user name.'),
+		);
+
+		if($access)
+			$form['search']['submit_view'] = array('#type' => 'submit', '#value' => t('View'));
+		if($administer)
+			$form['search']['submit_edit'] = array('#type' => 'submit', '#value' => t('Edit'));
+
+		return $form;
+
+	}// if()
+
+}// user_happy_form()
+
+
+/**
+ * Implement hook_submit().
+ * Redirect admin to edit page of the given user by the form
+ */
+function user_happy_form_submit($form, &$form_state){
+	$account_name = $form_state['input']['name'];
+
+	// Only if the given variable is a string
+	if(is_string($account_name)){
+
+		// In case of given variable is a list delimited by comma
+		$explode = explode(',', $account_name);
+		$account_name = $explode[0];
+
+		switch (strtolower($form_state['input']['op'])) {
+			case 'view':
+				$form_state['redirect'] = 'users/' . $account_name;
+				break;
+
+			case 'edit':
+				$form_state['redirect'] = 'user/' . user_load_by_name($account_name)->uid . '/edit';
+				break;
+
+		}// switch()
+
+	}// if()
+
+}// user_happy_form_submit()

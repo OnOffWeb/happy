@@ -1,0 +1,15 @@
+name = Happy User
+package = Happy
+description = Provides block in People page to find user. And (soon) many others functions.
+core = 7.x
+version = 7.x-1.0
+
+dependencies[] = user
+dependencies[] = taxonomy
+
+files[] = user_happy.module
+files[] = user_happy.api
+
+files[] = happy_taxonomy.api
+files[] = happy_role.api
+files[] = happy_user.api
