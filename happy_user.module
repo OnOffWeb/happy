@@ -3,9 +3,9 @@
 /**
  * Implement hook_block_info().
  */
-function user_happy_block_info(){
+function happy_user_block_info(){
 
-	return array('user_happy' =>
+	return array('happy_user' =>
 		array(
 			'info' => t('Search user'),
 			'region' => 'content',
@@ -20,13 +20,14 @@ function user_happy_block_info(){
 		),
 	);
 
-}// user_happy_block_info()
+}
+// happy_user_block_info()
 
 
 /**
  * Implement hook_block_view().
  */
-function user_happy_block_view($delta){
+function happy_user_block_view($delta){
 	$block = array();
 
 	switch ($delta) {
@@ -35,8 +36,8 @@ function user_happy_block_view($delta){
 			// if current user have right to use this block
 			if(user_access('user happy block')){
 				//$block['subject'] = t('Search user');
-				$block['content'] = drupal_get_form('user_happy_form');
-				drupal_add_css(drupal_get_path('module', 'user_happy') . '/css/happy_user.css');
+				$block['content'] = drupal_get_form('happy_user_form');
+				drupal_add_css(drupal_get_path('module', 'happy_user') . '/css/happy_user.css');
 			}// if()
 			break;
 
@@ -44,28 +45,30 @@ function user_happy_block_view($delta){
 
 	return $block;
 
-}// user_happy_block_view()
+}
+// happy_user_block_view()
 
 
 /**
  * Implement hook_permission().
  */
-function user_happy_permission() {
+function happy_user_permission() {
 
   return array(
-    'user happy block' => array(
+    'happy user block' => array(
       'title' => t('Use block user search'),
       'description' => t('Display search block in \'admin/people\' page.'),
     ),
   );
 
-}// user_happy_permission()
+}
+// happy_user_permission()
 
 
 /**
  * Generate form to find user.
  */
-function user_happy_form(){
+function happy_user_form(){
 	$access = user_access('access user profiles');
 	$administer = user_access('administer users');
 
@@ -96,14 +99,15 @@ function user_happy_form(){
 
 	}// if()
 
-}// user_happy_form()
+}
+// happy_user_form()
 
 
 /**
  * Implement hook_submit().
  * Redirect admin to edit page of the given user by the form
  */
-function user_happy_form_submit($form, &$form_state){
+function happy_user_form_submit($form, &$form_state){
 	$account_name = $form_state['input']['name'];
 
 	// Only if the given variable is a string
@@ -126,4 +130,5 @@ function user_happy_form_submit($form, &$form_state){
 
 	}// if()
 
-}// user_happy_form_submit()
+}
+// user_happy_form_submit()
