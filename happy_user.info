@@ -5,11 +5,5 @@ core = 7.x
 version = 7.x-1.0
 
 dependencies[] = user
-dependencies[] = taxonomy
 
-files[] = user_happy.module
-files[] = user_happy.api
-
-files[] = happy_taxonomy.api
-files[] = happy_role.api
-files[] = happy_user.api
+files[] = happy_user.inc
