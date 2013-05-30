@@ -1,13 +1,26 @@
 <?php
 
+function happy_user_menu() {
+  $items = array();
+
+  $items['user/%/contrib'] = array(
+    'title' => 'Contributions',
+    'page callback' => 'happy_user_contrib',
+    'access arguments' => array('access content'),
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  return $items;
+}
+
 /**
  * Implement hook_block_info().
  */
 function happy_user_block_info(){
-  
+
 $blocks = array();
 
-	$blocks['happy_user'] = array(
+	$blocks['happy_user_search'] = array(
 			'info' => t('Search user'),
 			'region' => 'content',
 			'weight' => -15,
@@ -35,7 +48,7 @@ function happy_user_block_view($delta){
 
 	switch ($delta) {
 
-		case 'user_happy':
+		case 'happy_user_search':
 			// if current user have right to use this block
 			if(user_access('user happy block')){
 				//$block['subject'] = t('Search user');
@@ -68,10 +81,49 @@ function happy_user_permission() {
 // happy_user_permission()
 
 
+function happy_user_contrib() {
+
+// Add required JavaScript and Stylesheet.
+  drupal_add_library('system', 'drupal.vertical-tabs');
+  $output = NULL;
+
+  $build['contribution'] = array(
+    '#type' => 'vertical_tabs',
+  );
+
+  $entities = entity_get_info();
+
+  dbug($entities);
+
+// Add required JavaScript and Stylesheet.
+  drupal_add_library('system', 'drupal.vertical-tabs');
+
+  foreach ($entities as $key => $entity) {
+    if (isset($entity['schema_fields_sql']['base table'])) {
+      $table = array();
+
+      $build[$key] =  array(
+        '#type'   => 'fieldset',
+        '#title'  => $entity['label'],
+        '#value' => theme('table', $table),
+        '#group'  => 'contribution',
+      );
+    }
+  }
+
+  return array(
+    '#markup' => theme('vertical_tabs', array(
+      'element' => array(
+        '#children' => render($build),
+      ),
+    )));
+  return $build;
+}
+
 /**
  * Generate form to find user.
  */
-function happy_user_form(){
+function happy_user_form() {
 	$access = user_access('access user profiles');
 	$administer = user_access('administer users');
 

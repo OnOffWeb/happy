@@ -1,6 +1,6 @@
 <?php
 
-dsqdqs
+
 /**
  * [user_happy_get_by_role description]
  * @param  [mixed]  $role          [description]
