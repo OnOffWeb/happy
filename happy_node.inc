@@ -1,15 +1,24 @@
 <?php
 
 /**
- * Get node type
- * @param  int $nid [description]
- * @return [type]      [description]
+ * @file
+ * Focus on the node elements.
  */
-function happy_get_type($nid){
-    $query = db_select('node', 'R');
-    $query->addField('R', 'type');
-    $query->condition('nid', $nid);
-    $result = $query->execute()->fetchAll();
 
-    return $result[0]->$type;
+/**
+ * Get node type.
+ *
+ * @param int $nid
+ *   The nid of the node to retrieve its type.
+ *
+ * @return string
+ *   The type found.
+ */
+function happy_get_type($nid) {
+  $query = db_select('node', 'R');
+  $query->addField('R', 'type');
+  $query->condition('nid', $nid);
+  $result = $query->execute()->fetchAll();
+
+  return $result[0]->type;
 }
