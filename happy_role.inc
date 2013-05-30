@@ -8,7 +8,7 @@
  * @param  boolean $intersect     [description]
  * @return [type]                 [description]
  */
-function happy_user_get_by_role($role, $object_return = FALSE, $intersect = TRUE){
+function happy_role_get_by_role($role, $object_return = FALSE, $intersect = TRUE){
   $return = NULL;
   $condition = array();
   $state = array();

@@ -4,9 +4,10 @@
  * Implement hook_block_info().
  */
 function happy_user_block_info(){
+  
+$blocks = array();
 
-	return array('happy_user' =>
-		array(
+	$blocks['happy_user'] = array(
 			'info' => t('Search user'),
 			'region' => 'content',
 			'weight' => -15,
@@ -16,9 +17,11 @@ function happy_user_block_info(){
 			'visibility' => BLOCK_VISIBILITY_LISTED,
 			'pages' => implode('\n', array(
 				"admin/people")
-			),
-		),
-	);
+      ),
+		);
+
+return $blocks;
+
 
 }
 // happy_user_block_info()
