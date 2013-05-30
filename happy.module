@@ -1,0 +1,12 @@
+<?php
+
+/**
+ * @file
+ * The main file of the module.
+ */
+
+// Include files utilities.
+module_load_include('inc', 'happy_user');
+module_load_include('inc', 'happy_role');
+module_load_include('inc', 'happy_taxonomy');
+module_load_include('inc', 'happy_node');

@@ -8,7 +8,3 @@ dependencies[] = user
 dependencies[] = role
 dependencies[] = taxonomy
 
-files[] = happy_user.inc
-files[] = happy_role.inc
-files[] = happy_taxonomy.inc
-files[] = happy_node.inc
