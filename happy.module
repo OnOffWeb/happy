@@ -39,16 +39,16 @@ define('DBUG_DEFAULT', DBUG_PRINT);
 * @TODO Improve Documentation
 *
 */
-function dbug ($obj = NULL, $end = TRUE, $method = DBUG_DEFAULT) {
+function dbug($obj = NULL, $end = TRUE, $method = DBUG_DEFAULT) {
 
-// Watchdog method : no die().
-if ($method == DBUG_WATCHDOG) {
-$method ('dbug_custom', serialize ($obj));
-}
-else {
+  // Watchdog method : no die().
+  if ($method == DBUG_WATCHDOG) {
+    $method ('dbug_custom', serialize ($obj));
+  }
+  else {
 
-// Output.
-print ('<pre>');
+    // Output.
+    print ('<pre>');
     if ($method == DBUG_KEYS) {
       // Ouput with array_keys method.
       print_r ($method ((array) $obj));
@@ -59,11 +59,11 @@ print ('<pre>');
     }
     print ('</pre>');
 
-// Die... not Today !
-if ($end || is_null ($end)) {
-exit;
-}
-}
+    // Die... not Today !
+    if ($end || is_null ($end)) {
+      drupal_exit();;
+    }
+  }
 }
 
 /**
@@ -79,11 +79,11 @@ exit;
 */
 function dback ($method = DBUG_BACKTRACE) {
 
-// Output.
-print ('<pre>');
+  // Output.
+  print ('<pre>');
   print_r ($method(DEBUG_BACKTRACE_IGNORE_ARGS));
   print ('</pre>');
 
-// Exit.
-exit;
+  // Exit.
+  drupal_exit();
 }
