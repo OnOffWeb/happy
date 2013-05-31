@@ -93,19 +93,51 @@ function happy_user_contrib() {
 
   $entities = entity_get_info();
 
-  dbug($entities);
-
-// Add required JavaScript and Stylesheet.
-  drupal_add_library('system', 'drupal.vertical-tabs');
+  // @TODO Support File
+  unset($entities['file']);
 
   foreach ($entities as $key => $entity) {
-    if (isset($entity['schema_fields_sql']['base table'])) {
-      $table = array();
+    if (array_search('uid', $entity['schema_fields_sql']['base table'])) {
+      $header = array(
+        'title'     => t('Title'),
+        'bundle'    => t('Type'),
+        'created'   => t('Created'),
+        'language'  => t('Language'),
+      );
+      $table = array(
+        'header' => $header,
+      );
 
+      $query = new EntityFieldQuery();
+      $query
+        ->entityCondition('entity_type', $key, '=')
+        ->propertyCondition('uid', arg(1), '=');
+      $result = $query->execute();
+
+      $items = array();
+      $entity_key   = $entity['entity keys']['id'];
+      $entity_label = $entity['entity keys']['label'];
+      foreach ($result[$key] as $element) {
+        $items[] = $element->$entity_key;
+      }
+      // Load
+      $items = entity_load($key, $items);
+
+      foreach($items as $item) {
+        $table['rows'][] = array(
+          'data' => array(
+            l($item->$entity_label, $key . '/' . $item->$entity_key),
+            (isset($item->type)) ? $entity['bundles'][$item->type]['label'] : $entity['bundles'][$item->node_type]['label'],
+            format_date($item->created),
+            $item->language,
+          )
+        );
+      }
+//dbug($table);
       $build[$key] =  array(
         '#type'   => 'fieldset',
         '#title'  => $entity['label'],
-        '#value' => theme('table', $table),
+        '#value'  => theme('table', $table),
         '#group'  => 'contribution',
       );
     }
