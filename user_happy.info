@@ -1,7 +1,0 @@
-name = User Happy
-package = user
-description = Provides block in People page to find user. And (soon) many others functions.
-core = 7.x
-version = 7.x-1.0
-
-dependencies[] = user

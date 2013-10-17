@@ -1,0 +1,212 @@
+<?php
+
+function rca_page_menu(){
+    $items = array();
+
+    $items['admin/plan'] = array(
+        'title' => 'Administer Plan',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('rca_page_admin_form'),
+        'access arguments' => array('administer nodes'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+    return $items;
+}
+
+function rca_page_theme($existing, $type, $theme, $path){
+    return array(
+        'rca_page_admin_form' => array('render element' => 'form'),
+        'rca_page_notation' => array('title', 'note', 'total'),
+        );
+}
+
+function rca_page_admin_form($form, &$form_state){
+    $form = array();
+    $r = str_replace('-', ' ', arg(2));
+    if(arg(2)){
+        $tid_master = taxonomy_get_term_by_name($r, 'structure');
+        $tid_children = taxonomy_get_children(array_shift($tid_master)->tid);
+
+        foreach ($tid_children as $tid_slave){
+
+            $form[$tid_slave->tid]=array(
+                '#type' => 'fieldset',
+                '#title' => t($tid_slave->name),
+                '#collapsible' => TRUE,
+                '#collapsed' => TRUE,
+            );
+
+            $tid_under = taxonomy_get_children($tid_slave->tid);
+
+            foreach($tid_under as $key => $tid_child){
+                $form[$tid_slave->tid][$tid_child->tid] = array(
+                    '#type' => 'fieldset',
+                    '#title' => t($tid_child->name),
+                    '#collapsible' => TRUE,
+                    '#collapsed' => FALSE,
+                );
+
+                //$nids = taxonomy_select_nodes($tid_child->tid, FALSE, FALSE);
+                $nids = taxonomy_select_nodes($tid_child->tid, FALSE, FALSE, $order = array('t.weight' => 'ASC'));
+                $nodes = node_load_multiple($nids);
+
+                /*
+                foreach($nodes as $Akey => $Anode){
+                    $nodes[$Akey]->weight = $Anode->field_weight['und'][0]['value'];
+                }
+                $nodes = array_sort($nodes, 'weight', SORT_ASC);
+                */
+
+                foreach($nodes as $key => $node){
+                    $query = db_select('taxonomy_index', 'R');
+                    $query->addField('R', 'weight');
+                    $query->condition('tid', $tid_child->tid);
+                    $query->condition('nid', $node->nid);
+                    $weight = $query->execute()->fetchAll();
+
+                    $form[$tid_slave->tid][$tid_child->tid][$node->nid] = array(
+                        '#type' => 'fieldset',
+                        '#title' => t($node->nid),
+                        '#collapsible' => FALSE,
+                        '#collapsed' => FALSE,
+                    );
+
+                    $form[$tid_slave->tid][$tid_child->tid][$node->nid]['data-item'] = array(
+                                                 '#type' => 'item',
+                                                 '#title' => $node->title,
+                                               );
+                    $form[$tid_slave->tid][$tid_child->tid][$node->nid]['field_weight-' . $node->nid . '-' . $tid_child->tid] = array(
+                        '#type' => 'weight',
+                        '#default_value' => $weight[0]->weight,
+                        '#attributes' => array('class' => array('weight')),
+                        '#delta' => 100,
+                    );
+                }
+            }
+        }
+
+        // Generate submit button
+        $form['submit'] = array(
+            '#type' => 'submit',
+            '#value' => t('Save changes'),
+        );
+    }
+    else{
+        $items = array();
+        $attributes = array();
+        $taxo_children = taxonomy_get_tree(taxonomy_vocabulary_machine_name_load("structure")->vid, 0, 1);
+        foreach($taxo_children as $taxo)
+            $items[] = l($taxo->name, 'admin/plan/' . str_replace(' ', '-', strtolower($taxo->name)));
+
+        $form['link'] = array(
+                '#markup' =>theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes)));
+    }
+
+    return $form;
+
+}
+
+function theme_rca_page_admin_form($form){
+    $content_exist = FALSE;
+    $output = NULL;
+    //loop through each "row" in the table array
+
+    foreach($form['form'] as $item_key => $item_form){
+        if(is_numeric($item_key)){
+            foreach($item_form as $child_key => $child_form){
+                if(is_numeric($child_key)){
+                    $table_rows = array();
+                    foreach($child_form as $element_key => $element){
+                        if(is_numeric($element_key)){
+                            $this_row = array($element['data-item']['#title']);
+
+                            //Add the weight field to the row
+                            $this_row[] = drupal_render($element['field_weight-' . $element_key . '-' . $child_key]);
+
+                            //Add the row to the array of rows
+                            $table_rows[] = array('data' => $this_row, 'class' => array('draggable'));
+                        };
+                    };
+                    $count_rows = count($table_rows);
+                    if($count_rows != 0){
+                        $header = array($child_form['#title'], "Order");
+                        $return_table = theme('table',array(
+                            'header' => $header,
+                            'rows' => $table_rows,
+                            'attributes' => array('id'=> 'admin_table_' . $child_key)
+                            ));
+                        $form['form'][$item_key][$child_key] = array(
+                                //'#type' => 'item',
+                                '#markup' => $return_table
+                                );
+                        if($count_rows != 1)
+                        drupal_add_tabledrag('admin_table_' . $child_key, 'order', 'sibling', 'weight');
+                    }
+                    else{
+                        $form['form'][$item_key][$child_key] = array(
+                            '#type' => 'item',
+                            '#title' => $child_form['#title'] . ': '
+                            );
+                        $form['form'][$item_key][$child_key][$child_key . '-markup'] = array(
+                            //'#type' => 'item',
+                            '#markup' => t('No item')
+                            );
+                    }
+                };
+            };
+            $output .= drupal_render($form['form'][$item_key]);
+        };
+    };
+
+    foreach($form['form'] as $super_key => $super_item){
+        if(is_array($super_item))
+            $output .= drupal_render($super_item);
+    }
+    return $output;
+}
+
+function rca_page_node_submit($node, $form, &$form_state){
+
+    if($form['type']['#value'] == 'lesson'){
+        extract($_POST);
+
+        $query = db_select('taxonomy_index', 'R');
+                        $query->addField('R', 'weight');
+                        $query->condition('tid', $form['#node']->field_rubrique_location['und'][0]['tid']);
+                        $query->condition('nid', $form['#node']->nid);
+                        $weight = $query->execute()->fetchAll();
+
+        node_save($node);
+
+        $query = db_update('taxonomy_index');
+                $query->fields(array('weight' => array_shift($weight)->weight));
+                $query->condition('nid', $node->nid);
+                $query->condition('tid', $node->field_rubrique_location['und'][0]['tid']);
+                $query->execute();
+
+        drupal_goto($_GET['destination']);
+    }
+}
+
+function rca_page_admin_form_submit($form, &$form_state) {
+
+    foreach($form_state['input'] as $input_key => $input){
+        $list = explode("-", $input_key);
+        if($list[0] == 'field_weight'){
+            /*
+            $query = db_update('field_data_field_weight');
+            $query->fields(array('field_weight_value' => $input));
+            $query->condition('entity_id', $list[1]);
+            $query->execute();
+            field_cache_clear();
+            */
+            $query = db_update('taxonomy_index');
+            $query->fields(array('weight' => $input));
+            $query->condition('nid', $list[1]);
+            $query->condition('tid', $list[2]);
+            $query->execute();
+            field_cache_clear();
+        }
+    }
+    drupal_set_message(t('Modifications saved.'));
+}
