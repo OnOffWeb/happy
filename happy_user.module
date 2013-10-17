@@ -114,30 +114,37 @@ function happy_user_contrib() {
         ->propertyCondition('uid', arg(1), '=');
       $result = $query->execute();
 
-      $items = array();
-      $entity_key   = $entity['entity keys']['id'];
-      $entity_label = $entity['entity keys']['label'];
-      foreach ($result[$key] as $element) {
-        $items[] = $element->$entity_key;
-      }
-      // Load
-      $items = entity_load($key, $items);
+      if (!empty($result)){
+        $items = array();
+        $entity_key   = $entity['entity keys']['id'];
+        $entity_label = $entity['entity keys']['label'];
+        //dbug($entity);
+        foreach ($result[$key] as $element) {
+          $items[] = $element->$entity_key;
+        }
+        // Load
+        $items = entity_load($key, $items);
 
-      foreach($items as $item) {
-        $table['rows'][] = array(
-          'data' => array(
-            l($item->$entity_label, $key . '/' . $item->$entity_key),
-            (isset($item->type)) ? $entity['bundles'][$item->type]['label'] : $entity['bundles'][$item->node_type]['label'],
-            format_date($item->created),
-            $item->language,
-          )
-        );
+        foreach($items as $item) {
+          $table['rows'][] = array(
+            'data' => array(
+              l($item->$entity_label, $key . '/' . $item->$entity_key),
+              (isset($item->type)) ? $entity['bundles'][$item->type]['label'] : $entity['bundles'][$item->node_type]['label'],
+              format_date($item->created),
+              $item->language,
+            )
+          );
+        }
+        $value = theme('table', $table);
       }
-//dbug($table);
+      else {
+        $value = t('No element');
+      }
+
       $build[$key] =  array(
         '#type'   => 'fieldset',
         '#title'  => $entity['label'],
-        '#value'  => theme('table', $table),
+        '#value'  => $value,
         '#group'  => 'contribution',
       );
     }
@@ -206,7 +213,7 @@ function happy_user_form_submit($form, &$form_state){
 
 		switch (strtolower($form_state['input']['op'])) {
 			case 'view':
-				$form_state['redirect'] = 'users/' . $account_name;
+				$form_state['redirect'] = 'user/' . user_load_by_name($account_name)->uid;
 				break;
 
 			case 'edit':

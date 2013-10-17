@@ -5,7 +5,9 @@ DESCRIPTION
 
 It's an happy module!
 
-
+##Happy User
+Provide block in People page to find user.
+Provide 'contrib' tab in user view.
 
 
 CONTRIBUTORS

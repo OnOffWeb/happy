@@ -1,6 +1,6 @@
 name = Happy User
 package = Happy
-description = Provides block in People page to find user. And (soon) many others functions.
+description = Provides block in People page to find user. And 'contrib' tab in user view.
 core = 7.x
 version = 7.x-1.0
 
