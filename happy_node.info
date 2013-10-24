@@ -1,0 +1,9 @@
+name = Happy Node
+package = Happy
+description = Provides block in Content page to find node.
+core = 7.x
+version = 7.x-1.0
+
+dependencies[] = user
+
+files[] = happy_node.inc

@@ -1,0 +1,152 @@
+<?php
+/**
+ * Implements hook_menu().
+ */
+function happy_node_menu() {
+  $items['content/autocomplete'] = array(
+    'title' => 'Content autocomplete',
+    'page callback' => 'node_autocomplete',
+    'access callback' => 'user_access',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'happy_node.inc',
+  );
+
+  return $items;
+}
+
+/**
+* Implement hook_block_info().
+*/
+function happy_node_block_info(){
+
+$blocks = array();
+
+$blocks['happy_node_search'] = array(
+  'info' => t('Search Content'),
+  'region' => 'content',
+  'weight' => -15,
+  'status' => 1,
+  'properties' => array('administrative' => TRUE),
+  'cache' => DRUPAL_CACHE_GLOBAL,
+  'visibility' => BLOCK_VISIBILITY_LISTED,
+  'pages' => implode('\n', array(
+    "admin/content")
+  ),
+);
+
+return $blocks;
+
+
+}
+// happy_node_block_info()
+
+
+/**
+* Implement hook_block_view().
+*/
+function happy_node_block_view($delta){
+  $block = array();
+
+  switch ($delta) {
+
+  case 'happy_node_search':
+    // if current user have right to use this block
+    if(user_access('happy node block')){
+      //$block['subject'] = t('Search user');
+      $block['content'] = drupal_get_form('happy_node_form');
+      drupal_add_css(drupal_get_path('module', 'happy_node') . '/css/happy_node.css');
+    }// if()
+    break;
+
+  }//switch()
+
+  return $block;
+
+}
+// happy_node_block_view()
+
+
+/**
+* Implement hook_permission().
+*/
+function happy_node_permission() {
+
+  return array(
+    'happy node block' => array(
+    'title' => t('Use block content search'),
+      'description' => t('Display search block in \'admin/content\' page.'),
+    ),
+  );
+
+}
+// happy_node_permission()
+
+
+/**
+ * Generate form to find user.
+ */
+function happy_node_form() {
+  $access = user_access('access content');
+  $administer = user_access('administer nodes');
+
+  // if current user have right to view or edit profiles
+  if($access || $administer){
+    $form = array();
+
+    $form['search'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Search Content'),
+    );
+    $form['search']['name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Search Content'),
+      '#maxlength' => 60,
+      '#size' => 30,
+      '#autocomplete_path' => 'content/autocomplete',
+      '#weight' => -1,
+      '#description' => t('Search content by title.'),
+    );
+
+    if($access)
+      $form['search']['submit_view'] = array('#type' => 'submit', '#value' => t('View'));
+    if($administer)
+      $form['search']['submit_edit'] = array('#type' => 'submit', '#value' => t('Edit'));
+
+    return $form;
+
+  }// if()
+
+}
+// happy_user_form()
+
+
+/**
+ * Implement hook_submit().
+ * Redirect admin to edit page of the given user by the form
+ */
+function happy_node_form_submit($form, &$form_state){
+  $account_name = $form_state['input']['name'];
+
+  // Only if the given variable is a string
+  if(is_string($account_name)){
+
+    // In case of given variable is a list delimited by comma
+    $explode = explode(',', $account_name);
+    $account_name = $explode[0];
+
+    switch (strtolower($form_state['input']['op'])) {
+      case 'view':
+        $form_state['redirect'] = 'node/' . user_load_by_name($account_name)->uid;
+        break;
+
+      case 'edit':
+        $form_state['redirect'] = 'node/' . user_load_by_name($account_name)->uid . '/edit';
+        break;
+
+    }// switch()
+
+  }// if()
+
+}
+// happy_node_form_submit()
