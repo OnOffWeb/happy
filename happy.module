@@ -104,7 +104,7 @@ function happy_preprocess(&$variables, $hook) {
    */
   if(isset($_GET['debug']) && $_GET['debug'] === '1') {
     global $conf;
-    $conf['theme_debug'] = true;
+    $conf['theme_debug'] = TRUE;
   }
 
 }
