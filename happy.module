@@ -88,3 +88,23 @@ function dback ($method = DBUG_BACKTRACE) {
   // Exit.
   drupal_exit();
 }
+
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+
+function happy_preprocess(&$variables, $hook) {
+
+  /**
+   * Force theme_debug to true to see suggestions and template loaded,
+   * Just add ?debug=1 at the end of your url and watch comments in the HTML rendered.
+   * Watch _theme_render_template_debug function for more infos.
+   * https://api.drupal.org/api/drupal/includes!theme.inc/function/_theme_render_template_debug/7
+   */
+  if(isset($_GET['debug']) && $_GET['debug'] === '1') {
+    global $conf;
+    $conf['theme_debug'] = true;
+  }
+
+}
