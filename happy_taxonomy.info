@@ -1,0 +1,12 @@
+name = Happy Taxonomy
+project = happy_taxonomy
+package = Happy
+description = Implement core's functionnality in taxonomy system
+core = 7.x
+version = 7.x-1.0
+
+dependencies[] = taxonomy
+
+files[] = happy_taxonomy.inc
+files[] = happy_taxonomy.module
+files[] = happy_taxonomy.install
