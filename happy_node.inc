@@ -37,3 +37,17 @@ function node_autocomplete($string = '') {
 
   drupal_json_output($matches);
 }
+/**
+ * Get all views mode.
+ *
+ * @param string Node type
+ *   The node type you wanted view mode for.
+ *
+ * @return array
+ *   View mode found.
+ */
+function happy_get_views_mode($node_type = 'node') {
+  $entity_info = entity_get_info($node_type);
+
+  return(array_keys($entity_info['view modes']));
+}

@@ -125,3 +125,84 @@ function dback ($method = DBUG_BACKTRACE) {
   // Exit.
   drupal_exit();
 }
+
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+
+function happy_preprocess(&$variables, $hook) {
+
+  /**
+   * Force theme_debug to true to see suggestions and template loaded,
+   * Just add ?debug=1 at the end of your url and watch comments in the HTML rendered.
+   * Watch _theme_render_template_debug function for more infos.
+   * https://api.drupal.org/api/drupal/includes!theme.inc/function/_theme_render_template_debug/7
+   */
+  if(isset($_GET['debug']) && $_GET['debug'] === '1') {
+    global $conf;
+    $conf['theme_debug'] = TRUE;
+  }
+
+}
+
+/**
+ * @param null $var
+ *
+ * Same as drupal_json_output but to manage XML.
+ */
+function drupal_xml_output($var = NULL) {
+  // We are returning XML, so tell the browser.
+  drupal_add_http_header('Content-Type', 'application/xml');
+
+  if (isset($var)) {
+    echo drupal_xml_encode($var);
+  }
+}
+
+/**
+ * @param      $mixed
+ * @param null $domElement
+ * @param null $DOMDocument
+ *
+ * Original function from https://www.darklaunch.com/2009/05/23/php-xml-encode-using-domdocument-convert-array-to-xml-json-encode
+ * Same as drupal_json_output but to manage XML.
+ */
+function drupal_xml_encode($mixed, $domElement = NULL, $DOMDocument = NULL) {
+  if (is_null($DOMDocument)) {
+    $DOMDocument = new DOMDocument;
+    $DOMDocument->formatOutput = TRUE;
+    drupal_xml_encode($mixed, $DOMDocument, $DOMDocument);
+    echo $DOMDocument->saveXML();
+  }
+  else {
+    if (is_array($mixed)) {
+      foreach ($mixed as $index => $mixedElement) {
+        if (is_int($index)) {
+          if ($index === 0) {
+            $node = $domElement;
+          }
+          else {
+            $node = $DOMDocument->createElement($domElement->tagName);
+            $domElement->parentNode->appendChild($node);
+          }
+        }
+        else {
+          $plural = $DOMDocument->createElement($index);
+          $domElement->appendChild($plural);
+          $node = $plural;
+          if (!(rtrim($index, 's') === $index)) {
+            $singular = $DOMDocument->createElement(rtrim($index, 's'));
+            $plural->appendChild($singular);
+            $node = $singular;
+          }
+        }
+
+        drupal_xml_encode($mixedElement, $node, $DOMDocument);
+      }
+    }
+    else {
+      $domElement->appendChild($DOMDocument->createTextNode($mixed));
+    }
+  }
+}
