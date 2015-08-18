@@ -1,9 +1,9 @@
 <?php
 
 /**
-* add new field to 'taxonomy_index' table.
-*/
-function rca_utils_install(){
+ * add new field to 'taxonomy_index' table.
+ */
+function happy_taxonomy_install(){
   db_add_field('taxonomy_index', 'weight', array(
     'description' => 'Weight information for a node.',
     'type' => 'int',

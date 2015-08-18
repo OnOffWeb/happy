@@ -1,212 +1,346 @@
 <?php
 
-function rca_page_menu(){
-    $items = array();
+include_once('happy_taxonomy.inc');
 
-    $items['admin/plan'] = array(
-        'title' => 'Administer Plan',
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array('rca_page_admin_form'),
-        'access arguments' => array('administer nodes'),
-        'type' => MENU_NORMAL_ITEM,
+/**
+ * Implements hook_menu().
+ */
+function happy_taxonomy_menu(){
+  $items = array();
+
+  $items['admin/structure/taxonomy/%taxonomy_vocabulary_machine_name/order'] = array(
+    'title' => 'Order content',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('happy_taxonomy_admin_form'),
+    'access arguments' => array('administer nodes'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function happy_taxonomy_theme($existing, $type, $theme, $path){
+  return array(
+    'happy_taxonomy_admin_form' => array('render element' => 'form'),
+    'happy_taxonomy_term_content_leaf' => array('variables' => array()),
+  );
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function happy_taxonomy_block_info() {
+  $vocabularies = taxonomy_get_vocabularies();
+
+  foreach ($vocabularies as $vocabulary) {
+    $blocks['happy__' . $vocabulary->machine_name . '__node'] = array(
+      'info' => t('Happy : !voc_name vocabulary block', array('!voc_name' => $vocabulary->name))
     );
-    return $items;
+  }
+
+  return $blocks;
 }
 
-function rca_page_theme($existing, $type, $theme, $path){
-    return array(
-        'rca_page_admin_form' => array('render element' => 'form'),
-        'rca_page_notation' => array('title', 'note', 'total'),
-        );
+/**
+ * Implement hook_block_view
+ */
+function happy_taxonomy_block_view($delta = '') {
+
+  $delta = explode('__', $delta);
+  if ($delta[0] == 'happy' && $delta[2] == 'node') {
+    $vocabulary = taxonomy_vocabulary_machine_name_load($delta[1]);
+
+    $tree = taxonomy_get_tree($vocabulary->vid, 0, 1);
+
+    foreach($tree as $key => $term) {
+      happy_taxonomy_term_tree_recurs($tree, $key, $term, $vocabulary->vid);
+    }
+
+    $tree['title'] = 3;
+
+    $block['subject'] = $vocabulary->name;
+    $block['content'] = theme('happy_taxonomy_term_content_leaf', $tree);
+
+    return $block;
+  }
 }
 
-function rca_page_admin_form($form, &$form_state){
-    $form = array();
-    $r = str_replace('-', ' ', arg(2));
-    if(arg(2)){
-        $tid_master = taxonomy_get_term_by_name($r, 'structure');
-        $tid_children = taxonomy_get_children(array_shift($tid_master)->tid);
+function happy_taxonomy_term_tree_recurs(&$tree, $key, $term, $vid) {
 
-        foreach ($tid_children as $tid_slave){
+  $nids = taxonomy_select_nodes($term->tid, FALSE, FALSE, $order = array('t.weight' => 'ASC'));
+  $tree[$key]->nodes = node_load_multiple($nids);
+  $tree[$key]->children = taxonomy_get_children($term->tid, $vid);
 
-            $form[$tid_slave->tid]=array(
-                '#type' => 'fieldset',
-                '#title' => t($tid_slave->name),
-                '#collapsible' => TRUE,
-                '#collapsed' => TRUE,
-            );
+  foreach($tree[$key]->children as $key_children => $children){
+    happy_taxonomy_term_tree_recurs($tree[$key]->children, $key_children, $children, $vid);
+  }
+}
 
-            $tid_under = taxonomy_get_children($tid_slave->tid);
+/**
+ * Implements hook_block_configure().
+ */
+function happy_taxonomy_block_configure($delta = '') {
+  // Configuration form for the block.
+  $delta = explode('__', $delta);
+  if ($delta[0] == 'happy' && $delta[2] == 'node') {
+    $form['items_number'] = array(
+      '#type'          => 'textfield',
+      '#title'         => t('Maximum number of items to display on desktop for each list.'),
+      '#size'          => 3,
+      '#maxlength'     => 3,
+      '#description'   => t('Leave 0 to show all.'),
+      '#default_value' => variable_get('happy_taxonomy__content_block__' . $delta[1] . '__number', 0),
+    );
+    $form['items_deep'] = array(
+      '#type'          => 'textfield',
+      '#title'         => t('The number of levels of the tree of term to return.'),
+      '#size'          => 3,
+      '#maxlength'     => 3,
+      '#description'   => t('Leave 0 to show all.'),
+      '#default_value' => variable_get('happy_taxonomy__content_block__' . $delta[1] . '__deep', 0),
+    );
+    $form['items_display'] = array(
+      '#type'          => 'select',
+      '#title'         => t('How to display list\'s items'),
+      '#size'          => 10,
+      '#maxlength'     => 50,
+      '#options'       => store_commons_get_views_mode(),
+      '#default_value' => variable_get('happy_taxonomy__content_block__' . $delta[1] . '__display', 0),
+      '#description'   => t('Be careful!'),
+    );
+  }
 
-            foreach($tid_under as $key => $tid_child){
-                $form[$tid_slave->tid][$tid_child->tid] = array(
-                    '#type' => 'fieldset',
-                    '#title' => t($tid_child->name),
-                    '#collapsible' => TRUE,
-                    '#collapsed' => FALSE,
-                );
+  return $form;
+}
 
-                //$nids = taxonomy_select_nodes($tid_child->tid, FALSE, FALSE);
-                $nids = taxonomy_select_nodes($tid_child->tid, FALSE, FALSE, $order = array('t.weight' => 'ASC'));
-                $nodes = node_load_multiple($nids);
+/**
+ * Implements hook_block_save().
+ */
+function happy_taxonomy_block_save($delta, $edit) {
+  $delta = explode('__', $delta);
+  if ($delta[0] == 'happy' && $delta[2] == 'node') {
+    variable_set('happy_taxonomy__content_block__' . $delta[1] . '__title', $edit['items_title']);
+    variable_set('happy_taxonomy__content_block__' . $delta[1] . '__number', $edit['items_number']);
+    variable_set('happy_taxonomy__content_block__' . $delta[1] . '__deep', $edit['items_deep']);
+    variable_set('happy_taxonomy__content_block__' . $delta[1] . '__display', $edit['items_display']);
+  }
+}
 
-                /*
-                foreach($nodes as $Akey => $Anode){
-                    $nodes[$Akey]->weight = $Anode->field_weight['und'][0]['value'];
-                }
-                $nodes = array_sort($nodes, 'weight', SORT_ASC);
-                */
+function happy_taxonomy_admin_form($form, &$form_state){
+  $taxonomy_name = arg(3);
+  $form = array();
+  $r = str_replace('-', ' ', arg(5));
+  if(arg(5)){
+    $tid_master = taxonomy_get_term_by_name($r, $taxonomy_name);
+    $tid_master = array_shift($tid_master);
 
-                foreach($nodes as $key => $node){
-                    $query = db_select('taxonomy_index', 'R');
-                    $query->addField('R', 'weight');
-                    $query->condition('tid', $tid_child->tid);
-                    $query->condition('nid', $node->nid);
-                    $weight = $query->execute()->fetchAll();
+    $nids = taxonomy_select_nodes($tid_master->tid, FALSE, FALSE, $order = array('t.weight' => 'ASC'));
+    $nodes = node_load_multiple($nids);
 
-                    $form[$tid_slave->tid][$tid_child->tid][$node->nid] = array(
-                        '#type' => 'fieldset',
-                        '#title' => t($node->nid),
-                        '#collapsible' => FALSE,
-                        '#collapsed' => FALSE,
-                    );
+    foreach($nodes as $key => $node){
+      $query = db_select('taxonomy_index', 'R');
+      $query->addField('R', 'weight');
+      $query->condition('tid', $tid_master->tid);
+      $query->condition('nid', $node->nid);
+      $weight = $query->execute()->fetchAll();
 
-                    $form[$tid_slave->tid][$tid_child->tid][$node->nid]['data-item'] = array(
-                                                 '#type' => 'item',
-                                                 '#title' => $node->title,
-                                               );
-                    $form[$tid_slave->tid][$tid_child->tid][$node->nid]['field_weight-' . $node->nid . '-' . $tid_child->tid] = array(
-                        '#type' => 'weight',
-                        '#default_value' => $weight[0]->weight,
-                        '#attributes' => array('class' => array('weight')),
-                        '#delta' => 100,
-                    );
-                }
-            }
-        }
+      $form[$node->nid] = array(
+        '#type'         => 'fieldset',
+        '#title'        => t($node->nid),
+        '#collapsible'  => FALSE,
+        '#collapsed'    => FALSE,
+      );
 
-        // Generate submit button
-        $form['submit'] = array(
-            '#type' => 'submit',
-            '#value' => t('Save changes'),
-        );
+      $form[$node->nid]['data-item'] = array(
+        '#type'   => 'item',
+        '#title'  => $node->title,
+      );
+
+      $form[$node->nid]['field_weight-' . $node->nid . '-' . $tid_master->tid] = array(
+        '#type'           => 'weight',
+        '#default_value'  => $weight[0]->weight,
+        '#attributes'     => array('class' => array('weight')),
+        '#delta'          => 100,
+      );
     }
-    else{
-        $items = array();
-        $attributes = array();
-        $taxo_children = taxonomy_get_tree(taxonomy_vocabulary_machine_name_load("structure")->vid, 0, 1);
-        foreach($taxo_children as $taxo)
-            $items[] = l($taxo->name, 'admin/plan/' . str_replace(' ', '-', strtolower($taxo->name)));
 
-        $form['link'] = array(
-                '#markup' =>theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes)));
+    $form['#taxonomy'] = $tid_master;
+
+    $children = taxonomy_get_children($tid_master->tid);
+    $parent = taxonomy_get_parents($tid_master->tid);
+    $parent = array_shift($parent);
+    if (empty($parent)) {
+      $form['#taxonomy_parent'] = array(
+        '#weight' => '-80',
+        '#prefix' => '<p>',
+        '#suffix' => '</p>',
+        '#markup' => l('Back to parent', 'admin/structure/taxonomy/' . str_replace(' ', '-', strtolower($taxonomy_name)) . '/order/')
+      );
+    }else {
+
+      $form['#taxonomy_parent'] = array(
+        '#weight' => '-80',
+        '#prefix' => '<p>',
+        '#suffix' => '</p>',
+        '#markup' => l('Back to parent', 'admin/structure/taxonomy/' . str_replace(' ', '-', strtolower($taxonomy_name)) . '/order/' . str_replace(' ', '-', strtolower($parent->name)))
+      );
     }
 
-    return $form;
+    if (!empty($children)) {
+      $items = array();
+      $attributes = array();
+
+      foreach($children as $taxo) {
+        $items[] = l($taxo->name, 'admin/structure/taxonomy/' . str_replace(' ', '-', strtolower($taxonomy_name)) . '/order/' . str_replace(' ', '-', strtolower($taxo->name)));
+      }
+
+      $form['#taxonomy_children'] = array(
+        '#weight' => '-50',
+        '#prefix' => t('Children', array('!current' => $tid_master->name)),
+        '#markup' => theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes))
+      );
+    }
+
+    // Generate submit button
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save changes'),
+    );
+  }
+  else{
+    $items = array();
+    $attributes = array();
+    $taxo_children = taxonomy_get_tree(taxonomy_vocabulary_machine_name_load($taxonomy_name)->vid, 0, 1);
+    foreach($taxo_children as $taxo) {
+      $items[] = l($taxo->name, 'admin/structure/taxonomy/' . str_replace(' ', '-', strtolower($taxonomy_name)) . '/order/' . str_replace(' ', '-', strtolower($taxo->name)));
+    }
+
+    $form['link'] = array(
+      '#markup' =>theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes)));
+  }
+
+  return $form;
 
 }
 
-function theme_rca_page_admin_form($form){
-    $content_exist = FALSE;
-    $output = NULL;
-    //loop through each "row" in the table array
+function theme_happy_taxonomy_admin_form($form){
+  $output = NULL;
+  //loop through each "row" in the table array
 
-    foreach($form['form'] as $item_key => $item_form){
-        if(is_numeric($item_key)){
-            foreach($item_form as $child_key => $child_form){
-                if(is_numeric($child_key)){
-                    $table_rows = array();
-                    foreach($child_form as $element_key => $element){
-                        if(is_numeric($element_key)){
-                            $this_row = array($element['data-item']['#title']);
+  $output .= render($form['form']['#taxonomy_parent']);
+  $output .= render($form['form']['#taxonomy_children']);
 
-                            //Add the weight field to the row
-                            $this_row[] = drupal_render($element['field_weight-' . $element_key . '-' . $child_key]);
+  $table_rows = array();
+  foreach($form['form'] as $item_key => $element){
+    if(is_numeric($item_key)) {
+      $this_row = array($element['data-item']['#title']);
 
-                            //Add the row to the array of rows
-                            $table_rows[] = array('data' => $this_row, 'class' => array('draggable'));
-                        };
-                    };
-                    $count_rows = count($table_rows);
-                    if($count_rows != 0){
-                        $header = array($child_form['#title'], "Order");
-                        $return_table = theme('table',array(
-                            'header' => $header,
-                            'rows' => $table_rows,
-                            'attributes' => array('id'=> 'admin_table_' . $child_key)
-                            ));
-                        $form['form'][$item_key][$child_key] = array(
-                                //'#type' => 'item',
-                                '#markup' => $return_table
-                                );
-                        if($count_rows != 1)
-                        drupal_add_tabledrag('admin_table_' . $child_key, 'order', 'sibling', 'weight');
-                    }
-                    else{
-                        $form['form'][$item_key][$child_key] = array(
-                            '#type' => 'item',
-                            '#title' => $child_form['#title'] . ': '
-                            );
-                        $form['form'][$item_key][$child_key][$child_key . '-markup'] = array(
-                            //'#type' => 'item',
-                            '#markup' => t('No item')
-                            );
-                    }
-                };
-            };
-            $output .= drupal_render($form['form'][$item_key]);
-        };
-    };
+      //Add the weight field to the row
+      $this_row[] = drupal_render($element['field_weight-' . $item_key . '-' . $form['form']['#taxonomy']->tid]);
 
-    foreach($form['form'] as $super_key => $super_item){
-        if(is_array($super_item))
-            $output .= drupal_render($super_item);
+      //Add the row to the array of rows
+      $table_rows[] = array('data' => $this_row, 'class' => array('draggable'));
+
+      unset($form['form'][$item_key]);
     }
-    return $output;
+  };
+
+  $count_rows = count($table_rows);
+
+  if($count_rows != 0){
+    $header = array($form['form']['#taxonomy']->name, "Order");
+    $return_table = theme('table',array(
+      'header' => $header,
+      'rows' => $table_rows,
+      'attributes' => array('id'=> 'admin_table_draggable_node_in_term')
+    ));
+    $form['form']['draggable'] = array(
+      //'#type' => 'item',
+      '#markup' => $return_table
+    );
+    if($count_rows != 1)
+      drupal_add_tabledrag('admin_table_draggable_node_in_term', 'order', 'sibling', 'weight');
+  }
+  elseif(!empty($form['form']['#taxonomy'])){
+    unset($form['form']['submit']);
+
+    $form['form']['draggable'] = array(
+      '#type' => 'item',
+      '#title' => $form['form']['#taxonomy']->name . ': '
+    );
+    $form['form']['draggable']['markup'] = array(
+      //'#type' => 'item',
+      '#markup' => t('No item')
+    );
+  }
+
+  $output .= drupal_render($form['form']['draggable']);
+
+  foreach($form['form'] as $super_key => $super_item){
+    if(is_array($super_item) && in_array('#parents', $super_item)) {
+      $output .= drupal_render($super_item);
+    }
+  }
+
+  return $output;
 }
 
-function rca_page_node_submit($node, $form, &$form_state){
+function theme_happy_taxonomy_term_content_leaf($variables){
+  $return = NULL;
 
-    if($form['type']['#value'] == 'lesson'){
-        extract($_POST);
+  $return .= '<dl>';
 
-        $query = db_select('taxonomy_index', 'R');
-                        $query->addField('R', 'weight');
-                        $query->condition('tid', $form['#node']->field_rubrique_location['und'][0]['tid']);
-                        $query->condition('nid', $form['#node']->nid);
-                        $weight = $query->execute()->fetchAll();
-
-        node_save($node);
-
-        $query = db_update('taxonomy_index');
-                $query->fields(array('weight' => array_shift($weight)->weight));
-                $query->condition('nid', $node->nid);
-                $query->condition('tid', $node->field_rubrique_location['und'][0]['tid']);
-                $query->execute();
-
-        drupal_goto($_GET['destination']);
+  foreach($variables as $term){
+    $term_all_children = happy_taxonomy_get_children_all($term->tid);
+    if(is_object($term) && !empty($term_all_children) && (!empty($term->nodes) || !empty($term->children))) {
+      $return .= '<h' . $variables['title'] . '>' . $term->name . '</h' . $variables['title'] . '>';
+      $return .= $term->description;
+      foreach ($term->nodes as $node) {
+        $return .= '<dt>' . $node->title . '</dt>';
+        $return .= '<dd>' . $node->field_commons_description[LANGUAGE_NONE][0]['value'] . '</dd>';
+      }
+      $term->children['title'] = $variables['title'] + 1;
+      $return .= theme('happy_taxonomy_term_content_leaf', $term->children);
     }
+  }
+
+
+  $return .= '</dl>';
+
+  return $return;
 }
 
-function rca_page_admin_form_submit($form, &$form_state) {
-
-    foreach($form_state['input'] as $input_key => $input){
-        $list = explode("-", $input_key);
-        if($list[0] == 'field_weight'){
-            /*
-            $query = db_update('field_data_field_weight');
-            $query->fields(array('field_weight_value' => $input));
-            $query->condition('entity_id', $list[1]);
-            $query->execute();
-            field_cache_clear();
-            */
-            $query = db_update('taxonomy_index');
-            $query->fields(array('weight' => $input));
-            $query->condition('nid', $list[1]);
-            $query->condition('tid', $list[2]);
-            $query->execute();
-            field_cache_clear();
-        }
+function happy_taxonomy_admin_form_submit($form, &$form_state) {
+  foreach($form_state['input'] as $input_key => $input){
+    $list = explode("-", $input_key);
+    if($list[0] == 'field_weight'){
+      /*
+      $query = db_update('field_data_field_weight');
+      $query->fields(array('field_weight_value' => $input));
+      $query->condition('entity_id', $list[1]);
+      $query->execute();
+      field_cache_clear();
+      */
+      $query = db_update('taxonomy_index');
+      $query->fields(array('weight' => $input));
+      $query->condition('nid', $list[1]);
+      $query->condition('tid', $list[2]);
+      $query->execute();
+      field_cache_clear();
     }
-    drupal_set_message(t('Modifications saved.'));
+  }
+  drupal_set_message(t('Modifications saved.'));
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function happy_taxonomy_form_taxonomy_overview_terms_alter(&$form, &$form_state, $form_id) {
+  foreach ($form as $key => $element) {
+    if (is_array($element) && !empty($element['#term'])) {
+      $form[$key]['edit']['#suffix'] = ' | ' . l('order', 'admin/structure/taxonomy/' . $form['#vocabulary']->machine_name . '/order/' . str_replace(' ', '-', strtolower($element['view']['#title'])));
+    }
+  }
 }

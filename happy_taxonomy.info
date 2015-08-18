@@ -1,4 +1,5 @@
 name = Happy Taxonomy
+project = happy_taxonomy
 package = Happy
 description = Implement core's functionnality in taxonomy system
 core = 7.x
