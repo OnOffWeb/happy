@@ -199,7 +199,11 @@ function happy_taxonomy_admin_form($form, &$form_state){
       $form['#taxonomy_children'] = array(
         '#weight' => '-50',
         '#prefix' => t('Children', array('!current' => $tid_master->name)),
-        '#markup' => theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes))
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#title' => '',
+        '#type' => 'ul',
+        '#attributes' => $attributes,
       );
     }
 
@@ -218,7 +222,12 @@ function happy_taxonomy_admin_form($form, &$form_state){
     }
 
     $form['link'] = array(
-      '#markup' =>theme('item_list', array('items' => $items, 'title' => '', 'type' => 'ul', 'attributes' => $attributes)));
+      '#theme' => 'item_list',
+      '#items' => $items,
+      '#title' => '',
+      '#type' => 'ul',
+      '#attributes' => $attributes,
+    );
   }
 
   return $form;
